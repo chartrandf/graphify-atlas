@@ -12,6 +12,7 @@ scope.tsv          which projects are tracked   (gitignored — personal)
 scope.tsv.example  header-only starter          (committed)
 graphs/<project>/<slot>/   one graph per worktree   (gitignored)
 bin/               the scripts
+skills/            the Claude Code skill (installed by symlink)
 templates/         .graphifyignore starter
 AGENTS.md          contract for coding agents (CLAUDE.md points here)
 AI_TASKS/          notes and plans   (ignored by your global ~/.gitignore — see .gitignore)
@@ -22,6 +23,7 @@ AI_TASKS/          notes and plans   (ignored by your global ~/.gitignore — se
 ```bash
 bin/install.sh                      # installs the graphify CLI (uv, or pipx)
 bin/install-cli.sh                  # puts `gatlas` on your PATH
+bin/install-skill.sh                # installs the Claude Code skill
 bin/scope-add.sh ~/Projects/my-repo # track a project and build its graph
 gatlas list                         # see what is tracked
 ```
@@ -51,9 +53,38 @@ path and nothing else — progress goes to stderr, so it is safe to use in a scr
 
 ### Claude Code
 
-`~/.claude/skills/graphify-atlas/SKILL.md` teaches agents to ask the graph before grepping,
-and to fall back to search — saying so — when a repo is not tracked. It shells out to `gatlas`,
-so it needs `bin/install-cli.sh` to have run.
+The skill lives in this repo at `skills/graphify-atlas/`, so it is versioned with everything
+else. It teaches agents to ask the graph before grepping, and to fall back to ordinary search —
+saying so — when a repo is not tracked.
+
+```bash
+bin/install-skill.sh              # symlink into ~/.claude/skills/
+bin/install-skill.sh --dir .claude/skills   # or scope it to one project
+bin/install-skill.sh --copy       # frozen snapshot instead of a symlink
+bin/install-skill.sh --remove
+```
+
+Symlinked by default, so editing `skills/graphify-atlas/SKILL.md` here takes effect in the next
+session. It will not overwrite an existing real directory without `--force`, and a replaced one
+is moved to `~/.claude/skills-backup/` — never left inside `~/.claude/skills/`, where it would
+load as a second, duplicate skill.
+
+It shells out to `gatlas`, so run `bin/install-cli.sh` too. Restart Claude Code to pick it up.
+
+## Uninstalling
+
+```bash
+bin/uninstall.sh                     # DRY RUN — lists exactly what would go
+bin/uninstall.sh --yes               # do it
+bin/uninstall.sh --yes --purge-cli   # also remove the graphifyy package
+bin/uninstall.sh --yes --keep-scope  # keep the project list
+```
+
+Removes the `gatlas` symlink, the skill and its backups, every built graph plus its entry in
+graphify's global registry, and `scope.tsv`.
+
+It never touches the projects it mapped, and never deletes this repo's committed files — delete
+the clone yourself once it has run.
 
 ## Scope
 
