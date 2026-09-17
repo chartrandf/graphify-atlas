@@ -72,5 +72,6 @@ gatlas refresh <name> [--all-worktrees]
 gatlas gc [--prune]
 ```
 
-This skill ships from the atlas repo and is symlinked here, so it tracks whatever is committed
-there. To find that repo: `dirname "$(dirname "$(readlink "$(command -v gatlas)")")"`.
+This skill is versioned in the atlas repo and symlinked into place, so it tracks whatever is
+committed there. `gatlas root` prints that repo — scripts in `bin/`, this skill in
+`skills/graphify-atlas/`, tracked projects in `scope.tsv`.

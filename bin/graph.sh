@@ -10,6 +10,7 @@
 #   graph.sh list                  every tracked project and slot
 #   graph.sh gc [--prune]          drop slots whose worktree is gone
 #   graph.sh refresh [args...]     rebuild by project name
+#   graph.sh root                  path to the atlas repo itself
 #
 # Installed globally as `gatlas` by bin/install-cli.sh, so an agent can call it
 # from inside any project without knowing where this repo lives.
@@ -123,10 +124,11 @@ case "$CMD" in
     graph="$(ensure "${1:-$PWD}")" || exit $?
     exec graphify query "$q" --graph "$graph"
     ;;
+  root)    printf '%s\n' "$ROOT" ;;
   list)    exec "$ROOT/bin/scope-list.sh" "$@" ;;
   gc)      exec "$ROOT/bin/graph-gc.sh" "$@" ;;
   refresh) exec "$ROOT/bin/refresh.sh" "$@" ;;
   ""|-h|--help)
     awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0" ;;
-  *) die "unknown command: $CMD (ensure|query|status|path|list|gc|refresh)" ;;
+  *) die "unknown command: $CMD (ensure|query|status|path|list|gc|refresh|root)" ;;
 esac

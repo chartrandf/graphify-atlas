@@ -46,6 +46,7 @@ gatlas ensure               # prints the graph path (rebuilding first if needed)
 gatlas list                 # every tracked project and worktree slot
 gatlas gc [--prune]         # drop slots whose worktree is gone
 gatlas refresh <name> [--all-worktrees]
+gatlas root                 # where this repo lives
 ```
 
 Exit codes: `0` ok, `2` not a tracked project, `1` error. Stdout from `ensure` is the graph
