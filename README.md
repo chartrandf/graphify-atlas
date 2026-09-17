@@ -78,8 +78,7 @@ open graphs/my-repo/graph.html
 ```bash
 git clone <this repo> && cd graphify-atlas
 bin/install.sh
-cp scope.tsv.example scope.tsv     # scope is per-machine, not committed
-bin/scope-add.sh ~/Projects/my-repo
+bin/scope-add.sh ~/Projects/my-repo   # scope.tsv is created on first run
 ```
 
 `scope.tsv` is gitignored: this repo has a public remote, and every row names a local path

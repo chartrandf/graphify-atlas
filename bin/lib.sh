@@ -9,6 +9,21 @@ info() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# scope.tsv is gitignored (it names local project paths and this repo is public),
+# so it is absent on a fresh clone — and on any checkout of a commit from before
+# it was untracked. Create it from the example instead of failing.
+ensure_scope() {
+  [[ -f "$SCOPE" ]] && return 0
+  if [[ -f "$ROOT/scope.tsv.example" ]]; then
+    cp "$ROOT/scope.tsv.example" "$SCOPE"
+  else
+    printf '# Projects tracked by this knowledge base.\n' > "$SCOPE"
+    printf '# Managed by bin/scope-add.sh / bin/scope-remove.sh — edit by hand only if you know why.\n' >> "$SCOPE"
+    printf '# name\tpath\tmode\n' >> "$SCOPE"
+  fi
+}
+ensure_scope
+
 # ~/foo <-> /Users/me/foo, so scope.tsv stays portable across machines
 tildify()   { case "$1" in "$HOME"/*) printf '~%s\n' "${1#"$HOME"}" ;; *) printf '%s\n' "$1" ;; esac; }
 untildify() { case "$1" in "~/"*)     printf '%s/%s\n' "$HOME" "${1#\~/}" ;; *) printf '%s\n' "$1" ;; esac; }
