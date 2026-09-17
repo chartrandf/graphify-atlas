@@ -2,8 +2,8 @@
 #
 # Run the whole install + workflow on real Linux, in a container.
 #
-#   bin/test-linux.sh            python:3.12-slim
-#   bin/test-linux.sh IMAGE      e.g. debian:12, ubuntu:24.04
+#   test/linux.sh            python:3.12-slim
+#   test/linux.sh IMAGE      e.g. debian:12, ubuntu:24.04
 #
 # Needs docker running. Takes a couple of minutes on a cold image pull.
 #
@@ -21,7 +21,11 @@ while [[ -L "$_s" ]]; do
   _s="$(readlink "$_s")"
   [[ "$_s" == /* ]] || _s="$_d/$_s"
 done
-source "$(cd -P "$(dirname "$_s")" && pwd)/lib.sh"
+source "$(cd -P "$(dirname "$_s")/../bin" && pwd)/lib.sh"
+
+case "${1:-}" in
+  -h|--help) awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"; exit 0 ;;
+esac
 
 IMAGE="${1:-python:3.12-slim}"
 command -v docker >/dev/null 2>&1 || die "docker is not installed"

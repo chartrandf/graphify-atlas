@@ -13,6 +13,7 @@ Read `README.md` for the human-facing version. This file is the contract for age
 | `scope.tsv.example` | header-only starter for a fresh clone | yes |
 | `bin/` | the scripts — the only supported interface | yes |
 | `templates/graphifyignore` | `.graphifyignore` starter | yes |
+| `test/linux.sh` | full install + workflow check in a Linux container | yes |
 | `graphs/<project>/<slot>/` | one graph per worktree; `_primary` is the main checkout | **no** |
 | `AI_TASKS/` | plans and notes | no (global `~/.gitignore`) |
 
@@ -36,7 +37,6 @@ bin/graph-gc.sh [--prune]                  # drop slots whose worktree is gone
 bin/install-cli.sh                         # symlink `gatlas` onto PATH
 bin/install-skill.sh                       # install the Claude Code skill
 bin/uninstall.sh [--yes]                   # undo everything (dry run by default)
-bin/test-linux.sh [image]                  # run the suite on real Linux, in docker
 ```
 
 `gatlas` is a symlink to `bin/graph.sh` and fronts every command, so edits here are live with
@@ -101,9 +101,9 @@ A missing graph means it was never built — run `bin/refresh.sh <name>`, don't 
   512 MiB.
 - Requires Python 3.10+. `uv` brings its own interpreter, `pipx` uses yours.
 - **macOS and Linux both.** Stay POSIX: no `readlink -f`, no `stat` format flags, no GNU-only
-  switches, nothing newer than bash 3.2 (macOS ships 3.2.57). Run `bin/test-linux.sh` after
-  touching `bin/`.
-- `bin/test-linux.sh` mounts this repo **read-only** on purpose — the suite deletes `scope.tsv`,
+  switches, nothing newer than bash 3.2 (macOS ships 3.2.57). Run `test/linux.sh [image]`
+  after touching `bin/`.
+- `test/linux.sh` mounts this repo **read-only** on purpose — the suite deletes `scope.tsv`,
   prunes graphs and runs the uninstaller. A writable mount destroys your real scope and graphs.
 
 ## Shell conventions

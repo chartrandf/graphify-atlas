@@ -13,6 +13,7 @@ scope.tsv.example  header-only starter          (committed)
 graphs/<project>/<slot>/   one graph per worktree   (gitignored)
 bin/               the scripts
 skills/            the Claude Code skill (installed by symlink)
+test/              containerised Linux check
 templates/         .graphifyignore starter
 AGENTS.md          contract for coding agents (CLAUDE.md points here)
 AI_TASKS/          notes and plans   (ignored by your global ~/.gitignore — see .gitignore)
@@ -191,7 +192,7 @@ project whose folder is missing shows as `gone` in `gatlas list` and is skipped.
   why `graphs/` is gitignored.
 - Requires Python 3.10+. `uv` provisions its own interpreter; `pipx` uses yours.
 - macOS and Linux. The scripts stick to POSIX tools and bash 3.2 features — no `readlink -f`,
-  no `stat` flags, no GNU-only switches. `bin/test-linux.sh [image]` runs the whole install and
+  no `stat` flags, no GNU-only switches. `test/linux.sh [image]` runs the whole install and
   workflow in a container to prove it; verified on python:3.12-slim, debian:12 and ubuntu:24.04.
   On Linux `~/.local/bin` is often not on PATH — `bin/install-cli.sh` says so and names the right
   rc file for your shell.
