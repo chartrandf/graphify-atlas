@@ -1,0 +1,12 @@
+# Analysis output — regenerable, large, never committed
+graphs/*
+!graphs/.gitkeep
+
+# graphify default output dir, in case anything lands here
+graphify-out/
+
+.DS_Store
+
+# Your global ~/.gitignore excludes AI_TASKS everywhere. This repo is a knowledge
+# base, so you may want it committed here — if so, uncomment:
+# !AI_TASKS/

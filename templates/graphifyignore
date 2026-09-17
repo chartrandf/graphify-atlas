@@ -1,0 +1,31 @@
+# Copied into a tracked project as .graphifyignore by bin/scope-add.sh --ignore-template
+# Trim what gets graphed: deps, build artifacts, fixtures, vendored code.
+
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+
+build/
+dist/
+out/
+target/
+.gradle/
+DerivedData/
+Pods/
+
+*.min.js
+*.bundle.js
+*.map
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+__snapshots__/
+__fixtures__/
+*.snap
+coverage/
+
+graphify-out/
