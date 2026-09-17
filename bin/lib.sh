@@ -23,6 +23,13 @@ scope_lookup() { scope_rows | awk -F'\t' -v n="$1" '$1 == n { print $2 "\t" $3; 
 scope_path() { untildify "$(scope_lookup "$1" | cut -f1)"; }
 scope_mode() { scope_lookup "$1" | cut -f2; }
 
+# Where graphify actually puts things. `graphify extract --out DIR` writes into
+# DIR/graphify-out/ — it appends the dir itself — so the target we pass and the
+# files we read back are NOT the same path. One source of truth for both.
+graph_target() { printf '%s/%s\n' "$GRAPHS" "$1"; }          # what --out receives
+graph_out()    { printf '%s/%s/graphify-out\n' "$GRAPHS" "$1"; }
+graph_json()   { printf '%s/%s/graphify-out/graph.json\n' "$GRAPHS" "$1"; }
+
 # Lowercase, non-alnum collapsed to a single dash. Used to derive a name from a folder.
 slugify() {
   printf '%s\n' "$1" \

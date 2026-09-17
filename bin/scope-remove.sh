@@ -6,8 +6,7 @@
 #
 #   --purge   also delete graphs/<name>/
 #
-# The tracked project itself is never touched. If it was wired with --claude,
-# undo that from the project:  graphify uninstall --project --platform claude
+# The tracked project itself is never touched.
 #
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"

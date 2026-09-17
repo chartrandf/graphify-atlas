@@ -25,7 +25,7 @@ for name in "${targets[@]}"; do
 
   path="$(untildify "$(cut -f1 <<<"$row")")"
   mode="$(cut -f2 <<<"$row")"
-  out="$GRAPHS/$name"
+  target="$(graph_target "$name")"
 
   if [[ ! -d "$path" ]]; then
     warn "$name: $path is gone, skipping"
@@ -34,9 +34,9 @@ for name in "${targets[@]}"; do
   fi
 
   info "$name  ($mode)  $path"
-  mkdir -p "$out"
+  mkdir -p "$target"
 
-  args=(extract "$path" --out "$out")
+  args=(extract "$path" --out "$target")
   [[ "$mode" == "code-only" ]] && args+=(--code-only)
 
   if ! graphify "${args[@]}"; then
@@ -45,9 +45,17 @@ for name in "${targets[@]}"; do
     continue
   fi
 
+  # extract writes graph.json and stops; graph.html and GRAPH_REPORT.md come from
+  # clustering. --no-label on code-only: naming communities is an LLM call, and
+  # code-only means nothing leaves this machine.
+  cargs=(cluster-only "$target")
+  [[ "$mode" == "code-only" ]] && cargs+=(--no-label)
+  graphify "${cargs[@]}" >/dev/null \
+    || warn "$name: graph built, but clustering/report failed"
+
   # Re-register so the name always points at the current graph.
   graphify global remove "$name" >/dev/null 2>&1 || true
-  graphify global add "$out/graph.json" --as "$name" >/dev/null \
+  graphify global add "$(graph_json "$name")" --as "$name" >/dev/null \
     || warn "$name: graph built, but 'graphify global add' failed"
 done
 

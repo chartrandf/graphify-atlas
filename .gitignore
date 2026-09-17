@@ -10,3 +10,7 @@ graphify-out/
 # Your global ~/.gitignore excludes AI_TASKS everywhere. This repo is a knowledge
 # base, so you may want it committed here — if so, uncomment:
 # !AI_TASKS/
+
+# Which local projects are tracked — paths to employer/client repos. This repo has
+# a PUBLIC remote; scope is per-machine personal data. Start from scope.tsv.example.
+scope.tsv

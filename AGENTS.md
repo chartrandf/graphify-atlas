@@ -9,11 +9,16 @@ Read `README.md` for the human-facing version. This file is the contract for age
 
 | Path | What | Committed |
 |---|---|---|
-| `scope.tsv` | tracked projects: `name<TAB>path<TAB>mode` | yes |
+| `scope.tsv` | tracked projects: `name<TAB>path<TAB>mode` | **no** — see below |
+| `scope.tsv.example` | header-only starter for a fresh clone | yes |
 | `bin/` | the scripts — the only supported interface | yes |
 | `templates/graphifyignore` | `.graphifyignore` starter | yes |
-| `graphs/<name>/` | `graph.json`, `graph.html`, `GRAPH_REPORT.md` | **no** |
+| `graphs/<name>/graphify-out/` | `graph.json`, `graph.html`, `GRAPH_REPORT.md` | **no** |
 | `AI_TASKS/` | plans and notes | no (global `~/.gitignore`) |
+
+**`scope.tsv` is gitignored on purpose.** This repo has a public remote, and every row names a
+local path to an employer or client project. Scope is per-machine personal data; the repo is the
+tool. Never `git add -f` it.
 
 `scope.tsv` stores paths `~`-relative. Read it through `bin/lib.sh` helpers, not by hand-parsing.
 
@@ -38,11 +43,13 @@ output location and registry sync. Fix the script if it's wrong.
 - **`--code-only` is the default and stays the default.** It parses locally with no API key and
   sends nothing off the machine — correct for Wazo and client code. `--semantic` is opt-in per
   project, chosen by the user, never inferred.
-- **Never run the bare `graphify install`.** The global form writes user-level instructions and
-  PreToolUse hooks that fire in *every* project. Only ever `graphify install --project`, from the
-  tracked project's root — that's what `bin/scope-add.sh --claude` does.
-- **Only `--claude` and `--ignore-template` write into a tracked project.** Everything else here
-  is read-only toward the projects it maps. Keep it that way.
+- **Never run `graphify install`, in any form.** The global form writes user-level instructions and
+  PreToolUse hooks that fire in *every* project. The `--project` form is no better here: agent
+  wiring belongs in a skill, not in each tracked repo's tree.
+- **Only `--ignore-template` writes into a tracked project.** Everything else here is read-only
+  toward the projects it maps — discovery is `git rev-parse`, nothing more. Keep it that way.
+- **No MCP server.** `graphify-mcp` serves one graph per process, which can't express per-worktree
+  graphs. Agents reach the graph through `bin/`.
 - **Adding a project is the user's call.** Don't put something in scope because it seemed useful.
 
 ## Querying a tracked project
@@ -51,22 +58,28 @@ Graphs live here, not beside the code, so every read command needs an explicit g
 
 ```bash
 bin/query.sh my-repo "how does auth reach the database?"
-graphify explain "UserService" --graph graphs/my-repo/graph.json
-graphify path "A" "B"          --graph graphs/my-repo/graph.json
+graphify explain "UserService" --graph graphs/my-repo/graphify-out/graph.json
+graphify path "A" "B"          --graph graphs/my-repo/graphify-out/graph.json
 graphify global path                      # crosses tracked projects
 ```
 
-A missing `graphs/<name>/graph.json` means it was never built — run `bin/refresh.sh <name>`, don't
-work around it.
+Note the `graphify-out/` segment: `graphify extract --out DIR` appends it. Build the path with
+`graph_json <name>` from `bin/lib.sh` rather than spelling it out.
+
+A missing graph means it was never built — run `bin/refresh.sh <name>`, don't work around it.
 
 ## Gotchas
 
 - PyPI package is `graphifyy` (two y's); the binary is `graphify`. The docs warn about lookalikes.
-- `graphify-mcp` serves **one graph per process**. Wiring N projects means N MCP entries with
-  distinct names, not one server.
-- `claude mcp add` defaults to `-s local` (this project, private). Never `-s user` — that's the
-  global leak this repo avoids. Never `-s project` — graph paths are absolute and machine-local.
-- Graphs get large; `GRAPHIFY_MAX_GRAPH_BYTES` guards at 512 MiB.
+- `graphify extract` writes `graph.json` and stops. `graph.html` and `GRAPH_REPORT.md` come from
+  `graphify cluster-only <target>`, which `bin/refresh.sh` runs as a second step.
+- `cluster-only` names communities with an **LLM by default**. `--no-label` is mandatory for
+  `code-only` projects, or the run makes API calls that `--code-only` exists to prevent.
+- `graphify` never fetches or pulls (except `graphify clone`). Syncing a ref is the caller's job.
+- A graph carries a top-level `built_at_commit`, stamped from the analysed repo's HEAD — use it
+  for staleness checks instead of tracking build times separately.
+- Graphs get large: ~61 MB of output for a 16k-node repo. `GRAPHIFY_MAX_GRAPH_BYTES` guards at
+  512 MiB.
 - Requires Python 3.10+. `uv` brings its own interpreter, `pipx` uses yours.
 
 ## Shell conventions

@@ -6,8 +6,8 @@
 #
 # Graphs live centrally here, so every graphify read command needs --graph.
 # Same idea for the others:
-#   graphify explain "Thing"  --graph graphs/<name>/graph.json
-#   graphify path "A" "B"     --graph graphs/<name>/graph.json
+#   graphify explain "Thing"  --graph graphs/<name>/graphify-out/graph.json
+#   graphify path "A" "B"     --graph graphs/<name>/graphify-out/graph.json
 #   graphify global path                 # crosses tracked projects
 #
 set -euo pipefail
@@ -17,7 +17,7 @@ need_graphify
 NAME="${1:-}"; shift || true
 [[ -n "$NAME" && $# -gt 0 ]] || die 'usage: bin/query.sh <name> "<question>" [graphify query flags]'
 
-graph="$GRAPHS/$NAME/graph.json"
+graph="$(graph_json "$NAME")"
 [[ -f "$graph" ]] || die "no graph for '$NAME' — bin/refresh.sh $NAME"
 
 exec graphify query "$@" --graph "$graph"

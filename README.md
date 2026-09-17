@@ -8,8 +8,9 @@ One folder holds the scope manifest and every project's graph. Nothing is writte
 the tracked projects unless you ask for it, and no analysis output is ever committed.
 
 ```
-scope.tsv          which projects are tracked   (committed)
-graphs/<name>/     graph.json, graph.html, GRAPH_REPORT.md   (gitignored)
+scope.tsv          which projects are tracked   (gitignored — personal)
+scope.tsv.example  header-only starter          (committed)
+graphs/<name>/graphify-out/   graph.json, graph.html, GRAPH_REPORT.md   (gitignored)
 bin/               the scripts
 templates/         .graphifyignore starter
 AGENTS.md          contract for coding agents (CLAUDE.md points here)
@@ -38,7 +39,6 @@ bin/scope-add.sh <path> [options]
   --semantic         semantic extraction too — needs an API key, sends code to a
                      model backend. Default is --code-only: structural parsing
                      locally, nothing leaves the machine.
-  --claude           wire it into Claude Code for that project
   --ignore-template  drop templates/graphifyignore into the project
   --no-extract       record it now, build later
 
@@ -49,13 +49,12 @@ bin/refresh.sh [name ...]              # rebuild; no args = everything
 `--code-only` is the default on purpose — it is the safe mode for client and employer
 code. Opt into `--semantic` per project, knowingly.
 
-`--claude` is the only flag that writes into the tracked project: it runs
-`graphify install --project --platform claude` there (project-scoped instructions and
-PreToolUse hooks) and adds a local-scope MCP server pointing at the central graph. Undo
-it with `graphify uninstall --project --platform claude` from that project.
+`--ignore-template` is the only flag that writes into the tracked project. Everything
+else here is read-only toward the projects it maps.
 
-Never run the bare `graphify install` — the global form installs instructions and hooks
-that fire in *every* project, which is exactly what this repo exists to avoid.
+Never run `graphify install` in any form — the global form installs instructions and
+PreToolUse hooks that fire in *every* project, which is exactly what this repo exists to
+avoid, and the `--project` form scatters the same wiring through each tracked repo.
 
 ## Querying
 
@@ -64,9 +63,9 @@ Graphs live here rather than beside the code, so read commands need `--graph`:
 ```bash
 bin/query.sh my-repo "how does authentication reach the database?"
 
-graphify explain "UserService" --graph graphs/my-repo/graph.json
-graphify path "A" "B"          --graph graphs/my-repo/graph.json
-open graphs/my-repo/graph.html
+graphify explain "UserService" --graph graphs/my-repo/graphify-out/graph.json
+graphify path "A" "B"          --graph graphs/my-repo/graphify-out/graph.json
+open graphs/my-repo/graphify-out/graph.html
 ```
 
 `bin/refresh.sh` also registers each graph under its name in graphify's own registry
@@ -77,10 +76,15 @@ open graphs/my-repo/graph.html
 ```bash
 git clone <this repo> && cd graphify-atlas
 bin/install.sh
-bin/refresh.sh        # rebuilds every graph in scope.tsv from local checkouts
+cp scope.tsv.example scope.tsv     # scope is per-machine, not committed
+bin/scope-add.sh ~/Projects/my-repo
 ```
 
-Paths in `scope.tsv` are stored `~`-relative, so they survive a different username. A
+`scope.tsv` is gitignored: this repo has a public remote, and every row names a local path
+to an employer or client project. That is personal data, so it does not travel with the
+repo — you re-declare scope per machine.
+
+Paths in it are stored `~`-relative, so a copied file survives a different username. A
 project whose folder is missing shows as `gone` in `bin/scope-list.sh` and is skipped.
 
 ## Notes

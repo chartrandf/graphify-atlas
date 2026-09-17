@@ -10,7 +10,7 @@ rows="$(scope_rows)"
 
 printf '%-24s %-12s %-12s %s\n' NAME MODE GRAPH PATH
 while IFS=$'\t' read -r name path mode; do
-  graph="$GRAPHS/$name/graph.json"
+  graph="$(graph_json "$name")"
   if [[ -f "$graph" ]]; then
     size="$(du -h "$graph" | cut -f1 | tr -d ' ')"
   elif [[ -d "$(untildify "$path")" ]]; then
