@@ -10,7 +10,7 @@ the tracked projects unless you ask for it, and no analysis output is ever commi
 ```
 scope.tsv          which projects are tracked   (gitignored — personal)
 scope.tsv.example  header-only starter          (committed)
-graphs/<name>/graphify-out/   graph.json, graph.html, GRAPH_REPORT.md   (gitignored)
+graphs/<name>/     graph.json, graph.html, GRAPH_REPORT.md   (gitignored)
 bin/               the scripts
 templates/         .graphifyignore starter
 AGENTS.md          contract for coding agents (CLAUDE.md points here)
@@ -50,7 +50,9 @@ bin/refresh.sh [name ...]              # rebuild; no args = everything
 code. Opt into `--semantic` per project, knowingly.
 
 `--ignore-template` is the only flag that writes into the tracked project. Everything
-else here is read-only toward the projects it maps.
+else here is read-only toward the projects it maps — which is why the scripts drive
+graphify through an absolute `GRAPHIFY_OUT` rather than `extract --out`: `--out` still
+leaves a cache directory behind inside the project it scanned.
 
 Never run `graphify install` in any form — the global form installs instructions and
 PreToolUse hooks that fire in *every* project, which is exactly what this repo exists to
@@ -63,9 +65,9 @@ Graphs live here rather than beside the code, so read commands need `--graph`:
 ```bash
 bin/query.sh my-repo "how does authentication reach the database?"
 
-graphify explain "UserService" --graph graphs/my-repo/graphify-out/graph.json
-graphify path "A" "B"          --graph graphs/my-repo/graphify-out/graph.json
-open graphs/my-repo/graphify-out/graph.html
+graphify explain "UserService" --graph graphs/my-repo/graph.json
+graphify path "A" "B"          --graph graphs/my-repo/graph.json
+open graphs/my-repo/graph.html
 ```
 
 `bin/refresh.sh` also registers each graph under its name in graphify's own registry

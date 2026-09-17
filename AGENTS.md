@@ -13,7 +13,7 @@ Read `README.md` for the human-facing version. This file is the contract for age
 | `scope.tsv.example` | header-only starter for a fresh clone | yes |
 | `bin/` | the scripts — the only supported interface | yes |
 | `templates/graphifyignore` | `.graphifyignore` starter | yes |
-| `graphs/<name>/graphify-out/` | `graph.json`, `graph.html`, `GRAPH_REPORT.md` | **no** |
+| `graphs/<name>/` | `graph.json`, `graph.html`, `GRAPH_REPORT.md` | **no** |
 | `AI_TASKS/` | plans and notes | no (global `~/.gitignore`) |
 
 **`scope.tsv` is gitignored on purpose.** This repo has a public remote, and every row names a
@@ -58,21 +58,24 @@ Graphs live here, not beside the code, so every read command needs an explicit g
 
 ```bash
 bin/query.sh my-repo "how does auth reach the database?"
-graphify explain "UserService" --graph graphs/my-repo/graphify-out/graph.json
-graphify path "A" "B"          --graph graphs/my-repo/graphify-out/graph.json
+graphify explain "UserService" --graph graphs/my-repo/graph.json
+graphify path "A" "B"          --graph graphs/my-repo/graph.json
 graphify global path                      # crosses tracked projects
 ```
 
-Note the `graphify-out/` segment: `graphify extract --out DIR` appends it. Build the path with
-`graph_json <name>` from `bin/lib.sh` rather than spelling it out.
+Build the path with `graph_json <name>` from `bin/lib.sh` rather than spelling it out.
 
 A missing graph means it was never built — run `bin/refresh.sh <name>`, don't work around it.
 
 ## Gotchas
 
 - PyPI package is `graphifyy` (two y's); the binary is `graphify`. The docs warn about lookalikes.
+- **Never use `graphify extract --out DIR`.** It redirects `graph.json` but still writes a
+  stat-index cache into `<scanned project>/graphify-out/` — a write into a tracked project. Drive
+  every graphify command with an absolute `GRAPHIFY_OUT` instead; it redirects the graph, the
+  report and all caches, and leaves the project untouched.
 - `graphify extract` writes `graph.json` and stops. `graph.html` and `GRAPH_REPORT.md` come from
-  `graphify cluster-only <target>`, which `bin/refresh.sh` runs as a second step.
+  `graphify cluster-only <project path>`, which `bin/refresh.sh` runs as a second step.
 - `cluster-only` names communities with an **LLM by default**. `--no-label` is mandatory for
   `code-only` projects, or the run makes API calls that `--code-only` exists to prevent.
 - `graphify` never fetches or pulls (except `graphify clone`). Syncing a ref is the caller's job.

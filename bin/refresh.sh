@@ -25,7 +25,7 @@ for name in "${targets[@]}"; do
 
   path="$(untildify "$(cut -f1 <<<"$row")")"
   mode="$(cut -f2 <<<"$row")"
-  target="$(graph_target "$name")"
+  out="$(graph_dir "$name")"
 
   if [[ ! -d "$path" ]]; then
     warn "$name: $path is gone, skipping"
@@ -34,12 +34,14 @@ for name in "${targets[@]}"; do
   fi
 
   info "$name  ($mode)  $path"
-  mkdir -p "$target"
+  mkdir -p "$out"
 
-  args=(extract "$path" --out "$target")
+  # GRAPHIFY_OUT, not --out: see the note in lib.sh. --out leaves a cache behind
+  # inside the scanned project. Set per command so it never leaks past the loop.
+  args=(extract "$path")
   [[ "$mode" == "code-only" ]] && args+=(--code-only)
 
-  if ! graphify "${args[@]}"; then
+  if ! GRAPHIFY_OUT="$out" graphify "${args[@]}"; then
     warn "$name: extract failed"
     failed+=("$name")
     continue
@@ -48,9 +50,9 @@ for name in "${targets[@]}"; do
   # extract writes graph.json and stops; graph.html and GRAPH_REPORT.md come from
   # clustering. --no-label on code-only: naming communities is an LLM call, and
   # code-only means nothing leaves this machine.
-  cargs=(cluster-only "$target")
+  cargs=(cluster-only "$path")
   [[ "$mode" == "code-only" ]] && cargs+=(--no-label)
-  graphify "${cargs[@]}" >/dev/null \
+  GRAPHIFY_OUT="$out" graphify "${cargs[@]}" >/dev/null \
     || warn "$name: graph built, but clustering/report failed"
 
   # Re-register so the name always points at the current graph.

@@ -6,8 +6,8 @@
 #
 # Graphs live centrally here, so every graphify read command needs --graph.
 # Same idea for the others:
-#   graphify explain "Thing"  --graph graphs/<name>/graphify-out/graph.json
-#   graphify path "A" "B"     --graph graphs/<name>/graphify-out/graph.json
+#   graphify explain "Thing"  --graph graphs/<name>/graph.json
+#   graphify path "A" "B"     --graph graphs/<name>/graph.json
 #   graphify global path                 # crosses tracked projects
 #
 set -euo pipefail

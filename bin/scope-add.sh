@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Put a local folder in scope: record it in scope.tsv and build its graph into
-# graphs/<name>/graphify-out/. The project itself is not touched.
+# graphs/<name>/. The project itself is not touched.
 #
 #   bin/scope-add.sh <path> [options]
 #
