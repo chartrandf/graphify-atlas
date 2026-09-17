@@ -1,17 +1,30 @@
 #!/usr/bin/env bash
 #
-# (Re)build the graph for tracked projects. Output goes to graphs/<name>/ in this
-# repo — never into the project itself — and is registered with graphify's own
-# global registry so `graphify global path` can cross project boundaries.
+# (Re)build graphs for tracked projects. Output goes to graphs/<project>/<slot>/
+# in this repo — never into the project itself.
 #
-#   bin/refresh.sh              all tracked projects
-#   bin/refresh.sh api portal   just these
+#   bin/refresh.sh                    every tracked project, primary checkout
+#   bin/refresh.sh api portal         just these
+#   bin/refresh.sh --all-worktrees    every live worktree of each target too
+#
+# A "slot" is one worktree: _primary for the main checkout, the slugified
+# directory name for a linked worktree. Rebuilding the slot you are standing in
+# is bin/graph.sh's job — it also checks freshness first.
 #
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 need_graphify
 
-targets=("$@")
+ALL_WT=0
+targets=()
+for a in "$@"; do
+  case "$a" in
+    --all-worktrees) ALL_WT=1 ;;
+    -*) die "unknown option: $a" ;;
+    *)  targets+=("$a") ;;
+  esac
+done
+
 if [[ ${#targets[@]} -eq 0 ]]; then
   # shellcheck disable=SC2207
   targets=($(scope_names))
@@ -25,7 +38,6 @@ for name in "${targets[@]}"; do
 
   path="$(untildify "$(cut -f1 <<<"$row")")"
   mode="$(cut -f2 <<<"$row")"
-  out="$(graph_dir "$name")"
 
   if [[ ! -d "$path" ]]; then
     warn "$name: $path is gone, skipping"
@@ -33,32 +45,34 @@ for name in "${targets[@]}"; do
     continue
   fi
 
-  info "$name  ($mode)  $path"
-  mkdir -p "$out"
-
-  # GRAPHIFY_OUT, not --out: see the note in lib.sh. --out leaves a cache behind
-  # inside the scanned project. Set per command so it never leaks past the loop.
-  args=(extract "$path")
-  [[ "$mode" == "code-only" ]] && args+=(--code-only)
-
-  if ! GRAPHIFY_OUT="$out" graphify "${args[@]}"; then
-    warn "$name: extract failed"
-    failed+=("$name")
-    continue
+  # worktree root -> slot. The tracked path is the primary checkout, but resolve
+  # it rather than assuming: scope.tsv may well point at a worktree.
+  worktrees=("$path")
+  if [[ $ALL_WT -eq 1 ]]; then
+    # shellcheck disable=SC2207
+    worktrees=($(git -C "$path" worktree list --porcelain 2>/dev/null \
+      | awk '/^worktree /{print $2}'))
   fi
 
-  # extract writes graph.json and stops; graph.html and GRAPH_REPORT.md come from
-  # clustering. --no-label on code-only: naming communities is an LLM call, and
-  # code-only means nothing leaves this machine.
-  cargs=(cluster-only "$path")
-  [[ "$mode" == "code-only" ]] && cargs+=(--no-label)
-  GRAPHIFY_OUT="$out" graphify "${cargs[@]}" >/dev/null \
-    || warn "$name: graph built, but clustering/report failed"
+  for wt in "${worktrees[@]}"; do
+    [[ -d "$wt" ]] || { warn "$name: $wt is gone, skipping"; continue; }
+    slot="$(resolve_slot "$wt" | cut -f2)" || { warn "$name: cannot resolve $wt"; continue; }
+    out="$(slot_dir "$name" "$slot")"
 
-  # Re-register so the name always points at the current graph.
-  graphify global remove "$name" >/dev/null 2>&1 || true
-  graphify global add "$(graph_json "$name")" --as "$name" >/dev/null \
-    || warn "$name: graph built, but 'graphify global add' failed"
+    info "$name/$slot  ($mode, $(worktree_label "$wt"))  $wt"
+    if ! slot_lock "$out" 60; then
+      warn "$name/$slot: busy, skipping"
+      failed+=("$name/$slot")
+      continue
+    fi
+    if build_slot "$name" "$slot" "$wt" "$mode"; then
+      slot_unlock "$out"
+    else
+      slot_unlock "$out"
+      warn "$name/$slot: build failed"
+      failed+=("$name/$slot")
+    fi
+  done
 done
 
 echo

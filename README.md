@@ -10,7 +10,7 @@ the tracked projects unless you ask for it, and no analysis output is ever commi
 ```
 scope.tsv          which projects are tracked   (gitignored — personal)
 scope.tsv.example  header-only starter          (committed)
-graphs/<name>/     graph.json, graph.html, GRAPH_REPORT.md   (gitignored)
+graphs/<project>/<slot>/   one graph per worktree   (gitignored)
 bin/               the scripts
 templates/         .graphifyignore starter
 AGENTS.md          contract for coding agents (CLAUDE.md points here)
@@ -62,13 +62,30 @@ avoid, and the `--project` form scatters the same wiring through each tracked re
 
 Graphs live here rather than beside the code, so read commands need `--graph`:
 
+Working inside a tracked project — this resolves the worktree you are in and rebuilds
+it first if the graph no longer matches your HEAD:
+
+```bash
+bin/graph.sh query "how does authentication reach the database?"
+bin/graph.sh status          # which slot, which branch, current or stale
+```
+
+By project name, against the primary checkout:
+
 ```bash
 bin/query.sh my-repo "how does authentication reach the database?"
-
-graphify explain "UserService" --graph graphs/my-repo/graph.json
-graphify path "A" "B"          --graph graphs/my-repo/graph.json
-open graphs/my-repo/graph.html
+graphify explain "UserService" --graph graphs/my-repo/_primary/graph.json
+open graphs/my-repo/_primary/graph.html
 ```
+
+## Worktrees
+
+Graphify graphs a *directory*, not a branch — so one graph per worktree. Switch branches or
+`git worktree add`, and `bin/graph.sh` resolves to the right slot on its own; there is nothing
+to configure and no second `scope-add`. A graph built from a different commit than your HEAD
+is rebuilt before it is used, so an agent can never answer from another branch's parse.
+
+Closing a worktree leaves its graph behind — `bin/graph-gc.sh --prune` reclaims it.
 
 `bin/refresh.sh` also registers each graph under its name in graphify's own registry
 (`graphify global list`), so `graphify global path` can cross project boundaries.

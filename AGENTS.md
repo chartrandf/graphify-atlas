@@ -13,7 +13,7 @@ Read `README.md` for the human-facing version. This file is the contract for age
 | `scope.tsv.example` | header-only starter for a fresh clone | yes |
 | `bin/` | the scripts — the only supported interface | yes |
 | `templates/graphifyignore` | `.graphifyignore` starter | yes |
-| `graphs/<name>/` | `graph.json`, `graph.html`, `GRAPH_REPORT.md` | **no** |
+| `graphs/<project>/<slot>/` | one graph per worktree; `_primary` is the main checkout | **no** |
 | `AI_TASKS/` | plans and notes | no (global `~/.gitignore`) |
 
 **`scope.tsv` is gitignored on purpose.** This repo has a public remote, and every row names a
@@ -28,10 +28,19 @@ tool. Never `git add -f` it.
 bin/install.sh [--upgrade]                 # install the graphify CLI (uv, fallback pipx)
 bin/scope-add.sh <path> [opts]             # track a project + build its graph
 bin/scope-remove.sh <name> [--purge]
-bin/scope-list.sh
-bin/refresh.sh [name ...]                  # rebuild; no args = all
-bin/query.sh <name> "<question>"
+bin/scope-list.sh                          # every slot, with branch + freshness
+bin/refresh.sh [name ...] [--all-worktrees]
+bin/query.sh <name> "<question>"           # the PRIMARY checkout, by name
+bin/graph.sh ensure|query|status|path [dir]  # the worktree you are standing in
+bin/graph-gc.sh [--prune]                  # drop slots whose worktree is gone
 ```
+
+**Agents use `bin/graph.sh`, never a graph path directly.** graphify graphs a
+*directory*, so with worktrees and branch switching, reading a `graph.json` yourself means
+silently answering from another branch's parse. `bin/graph.sh ensure` resolves the worktree you
+are in, rebuilds if the graph does not match its HEAD, and only then prints the path. Its stdout
+is the path and nothing else; progress goes to stderr. Exit 2 means "not a tracked project" —
+fall back to grep and say so, never guess.
 
 Don't hand-roll `graphify extract` / `graphify global` calls — `bin/refresh.sh` owns extraction,
 output location and registry sync. Fix the script if it's wrong.

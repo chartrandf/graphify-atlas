@@ -24,6 +24,23 @@ ensure_scope() {
 }
 ensure_scope
 
+# A slot is a directory holding a graph. Anything else under graphs/<project>/
+# is not one, and must never be treated as garbage.
+is_slot_dir() { [[ -f "$1/graph.json" || -f "$1/.graphify_root" ]]; }
+
+# graphs/<project>/graph.json is the pre-slot layout. Move it under _primary/
+# rather than orphaning a graph that was built before slots existed.
+migrate_flat_slots() {
+  local d
+  for d in "$GRAPHS"/*/; do
+    [[ -f "$d/graph.json" ]] || continue
+    mkdir -p "$d/_primary"
+    find "$d" -maxdepth 1 -mindepth 1 ! -name '_primary' -exec mv {} "$d/_primary/" \; 2>/dev/null || true
+    info "migrated $(basename "$d") to the per-worktree layout (_primary)"
+  done
+}
+migrate_flat_slots
+
 # ~/foo <-> /Users/me/foo, so scope.tsv stays portable across machines
 tildify()   { case "$1" in "$HOME"/*) printf '~%s\n' "${1#"$HOME"}" ;; *) printf '%s\n' "$1" ;; esac; }
 untildify() { case "$1" in "~/"*)     printf '%s/%s\n' "$HOME" "${1#\~/}" ;; *) printf '%s\n' "$1" ;; esac; }
@@ -147,6 +164,63 @@ graph_is_fresh() {
   built="$(graph_built_commit "$g")" || return 1
   head="$(git -C "$wt" rev-parse HEAD 2>/dev/null)" || return 1
   [[ "$built" == "$head" ]]
+}
+
+# Branch of a worktree, or a short sha when detached.
+worktree_label() {
+  local wt="$1" b
+  b="$(git -C "$wt" branch --show-current 2>/dev/null)"
+  [[ -n "$b" ]] || b="detached@$(git -C "$wt" rev-parse --short HEAD 2>/dev/null)"
+  printf '%s\n' "$b"
+}
+
+# ── Slot lock ─────────────────────────────────────────────────────────────────
+# Several agents work the same project at once. Different worktrees get different
+# slots and never collide, but two agents in ONE worktree can race a rebuild.
+# mkdir is the atomic primitive here: flock is not on macOS, and this repo sticks
+# to POSIX-ish tools. A lock whose owning pid is gone is reclaimed.
+slot_lock() {
+  local out="$1" timeout="${2:-180}" lock="$1/.lock" waited=0 pid
+  mkdir -p "$out"
+  while ! mkdir "$lock" 2>/dev/null; do
+    pid="$(cat "$lock/pid" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
+      warn "reclaiming lock held by dead pid $pid"
+      rm -rf "$lock"
+      continue
+    fi
+    (( waited >= timeout )) && return 1
+    sleep 1
+    waited=$((waited + 1))
+  done
+  printf '%s\n' "$$" > "$lock/pid"
+}
+
+slot_unlock() { [[ -n "${1:-}" ]] && rm -rf "${1:?}/.lock"; }
+
+# ── Building a slot ───────────────────────────────────────────────────────────
+# Shared by refresh.sh and graph.sh so there is exactly one way a graph is built.
+build_slot() {
+  local project="$1" slot="$2" wt="$3" mode="${4:-code-only}" out args cargs
+  out="$(slot_dir "$project" "$slot")"
+  mkdir -p "$out"
+
+  args=(extract "$wt")
+  [[ "$mode" == "code-only" ]] && args+=(--code-only)
+  GRAPHIFY_OUT="$out" graphify "${args[@]}" || return 1
+
+  cargs=(cluster-only "$wt")
+  [[ "$mode" == "code-only" ]] && cargs+=(--no-label)
+  GRAPHIFY_OUT="$out" graphify "${cargs[@]}" >/dev/null \
+    || warn "$project/$slot: graph built, but clustering/report failed"
+
+  # The cross-project registry tracks the primary checkout only — one entry per
+  # project, not one per throwaway worktree.
+  if [[ "$slot" == "_primary" ]]; then
+    graphify global remove "$project" >/dev/null 2>&1 || true
+    graphify global add "$(slot_json "$project" "$slot")" --as "$project" >/dev/null 2>&1 \
+      || warn "$project: 'graphify global add' failed"
+  fi
 }
 
 # Lowercase, non-alnum collapsed to a single dash. Used to derive a name from a folder.
