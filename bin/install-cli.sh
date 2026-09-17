@@ -56,8 +56,21 @@ info "linked $LINK -> $ROOT/bin/graph.sh"
 
 case ":$PATH:" in
   *":$DIR:"*) info "ok: $DIR is on your PATH" ;;
-  *) warn "$DIR is not on your PATH — add it:"
-     echo "    echo 'export PATH=\"\$PATH:$DIR\"' >> ~/.zshrc" ;;
+  *)
+    # Name the right rc file for the shell in use — a Linux colleague is very
+    # likely on bash, where ~/.zshrc would be silently useless.
+    case "$(basename "${SHELL:-sh}")" in
+      zsh)  rc="~/.zshrc" ;;
+      bash) rc="~/.bashrc" ;;
+      fish) rc="~/.config/fish/config.fish" ;;
+      *)    rc="your shell's rc file" ;;
+    esac
+    warn "$DIR is not on your PATH — add it:"
+    if [[ "$rc" == *fish* ]]; then
+      echo "    fish_add_path $DIR"
+    else
+      echo "    echo 'export PATH=\"\$PATH:$DIR\"' >> $rc"
+    fi ;;
 esac
 
 echo

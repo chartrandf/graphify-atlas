@@ -144,7 +144,7 @@ Drilling into one node — `gatlas ensure` hands you a path that is guaranteed c
 G="$(gatlas ensure)"
 graphify explain  "UserService" --graph "$G"
 graphify affected "UserService" --graph "$G"   # what breaks if this changes
-open "$(dirname "$G")/graph.html"
+open "$(dirname "$G")/graph.html"      # xdg-open on Linux
 ```
 
 By project name instead, against the primary checkout — no freshness check, so prefer
@@ -190,3 +190,8 @@ project whose folder is missing shows as `gone` in `gatlas list` and is skipped.
 - Graphs get large — `GRAPHIFY_MAX_GRAPH_BYTES` guards at 512 MiB by default. That is
   why `graphs/` is gitignored.
 - Requires Python 3.10+. `uv` provisions its own interpreter; `pipx` uses yours.
+- macOS and Linux. The scripts stick to POSIX tools and bash 3.2 features — no `readlink -f`,
+  no `stat` flags, no GNU-only switches. `bin/test-linux.sh [image]` runs the whole install and
+  workflow in a container to prove it; verified on python:3.12-slim, debian:12 and ubuntu:24.04.
+  On Linux `~/.local/bin` is often not on PATH — `bin/install-cli.sh` says so and names the right
+  rc file for your shell.
