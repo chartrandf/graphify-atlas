@@ -3,7 +3,15 @@
 # Show what is in scope and whether its graph is built.
 #
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# Resolve through symlinks so this works when linked into ~/.local/bin.
+# BSD readlink has no -f, so walk the links by hand.
+_s="${BASH_SOURCE[0]}"
+while [[ -L "$_s" ]]; do
+  _d="$(cd -P "$(dirname "$_s")" && pwd)"
+  _s="$(readlink "$_s")"
+  [[ "$_s" == /* ]] || _s="$_d/$_s"
+done
+source "$(cd -P "$(dirname "$_s")" && pwd)/lib.sh"
 
 rows="$(scope_rows)"
 [[ -z "$rows" ]] && { info "nothing tracked yet — bin/scope-add.sh <path>"; exit 0; }

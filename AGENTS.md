@@ -33,7 +33,11 @@ bin/refresh.sh [name ...] [--all-worktrees]
 bin/query.sh <name> "<question>"           # the PRIMARY checkout, by name
 bin/graph.sh ensure|query|status|path [dir]  # the worktree you are standing in
 bin/graph-gc.sh [--prune]                  # drop slots whose worktree is gone
+bin/install-cli.sh                         # symlink `gatlas` onto PATH
 ```
+
+`gatlas` is a symlink to `bin/graph.sh` and fronts every command, so edits here are live with
+nothing to reinstall. All scripts resolve through symlinks to find `lib.sh`.
 
 **Agents use `bin/graph.sh`, never a graph path directly.** graphify graphs a
 *directory*, so with worktrees and branch switching, reading a `graph.json` yourself means

@@ -3,10 +3,16 @@
 # The entry point an agent calls. Resolves the graph for the worktree you are
 # STANDING IN, and refuses to serve one that does not match it.
 #
-#   bin/graph.sh ensure [dir]          resolve + rebuild if stale; prints the graph path
-#   bin/graph.sh query "<question>" [dir]
-#   bin/graph.sh status [dir]          what would be used, and whether it is current
-#   bin/graph.sh path [dir]            graph path only, no rebuild (empty if absent)
+#   graph.sh ensure [dir]          resolve + rebuild if stale; prints the graph path
+#   graph.sh query "<question>" [dir]
+#   graph.sh status [dir]          what would be used, and whether it is current
+#   graph.sh path [dir]            graph path only, no rebuild (empty if absent)
+#   graph.sh list                  every tracked project and slot
+#   graph.sh gc [--prune]          drop slots whose worktree is gone
+#   graph.sh refresh [args...]     rebuild by project name
+#
+# Installed globally as `gatlas` by bin/install-cli.sh, so an agent can call it
+# from inside any project without knowing where this repo lives.
 #
 # <dir> defaults to $PWD, so an agent just runs it from wherever it is working.
 #
@@ -19,7 +25,15 @@
 # Exit codes: 0 ok · 2 not a tracked project · 1 error
 #
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# Resolve through symlinks so this works when linked into ~/.local/bin.
+# BSD readlink has no -f, so walk the links by hand.
+_s="${BASH_SOURCE[0]}"
+while [[ -L "$_s" ]]; do
+  _d="$(cd -P "$(dirname "$_s")" && pwd)"
+  _s="$(readlink "$_s")"
+  [[ "$_s" == /* ]] || _s="$_d/$_s"
+done
+source "$(cd -P "$(dirname "$_s")" && pwd)/lib.sh"
 
 LOCKED=""
 # Must return 0: this runs as the EXIT trap, and a trailing `&&` that evaluates
@@ -109,7 +123,10 @@ case "$CMD" in
     graph="$(ensure "${1:-$PWD}")" || exit $?
     exec graphify query "$q" --graph "$graph"
     ;;
+  list)    exec "$ROOT/bin/scope-list.sh" "$@" ;;
+  gc)      exec "$ROOT/bin/graph-gc.sh" "$@" ;;
+  refresh) exec "$ROOT/bin/refresh.sh" "$@" ;;
   ""|-h|--help)
     awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0" ;;
-  *) die "unknown command: $CMD (ensure|query|status|path)" ;;
+  *) die "unknown command: $CMD (ensure|query|status|path|list|gc|refresh)" ;;
 esac

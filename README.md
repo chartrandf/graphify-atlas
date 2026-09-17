@@ -21,6 +21,7 @@ AI_TASKS/          notes and plans   (ignored by your global ~/.gitignore — se
 
 ```bash
 bin/install.sh                      # installs the graphify CLI (uv, or pipx)
+bin/install-cli.sh                  # puts `gatlas` on your PATH (symlink)
 bin/scope-add.sh ~/Projects/my-repo # track a project and build its graph
 bin/scope-list.sh                   # see what is tracked
 ```
