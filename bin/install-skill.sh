@@ -2,11 +2,16 @@
 #
 # Install this repo's Claude Code skill so agents ask the graph before grepping.
 #
-#   bin/install-skill.sh             symlink into ~/.claude/skills/
-#   bin/install-skill.sh --dir DIR   somewhere else (a project's .claude/skills)
+#   bin/install-skill.sh             ask global or project-local, then install
+#   bin/install-skill.sh --global    ~/.claude/skills  (every project on this machine)
+#   bin/install-skill.sh --project [path]   <path>/.claude/skills  (that project only)
+#   bin/install-skill.sh --dir DIR   an explicit directory
 #   bin/install-skill.sh --copy      copy instead of symlink
 #   bin/install-skill.sh --force     replace an existing real directory (backed up)
 #   bin/install-skill.sh --remove
+#
+# With no location flag it asks, when run interactively. Piped or in a script it
+# takes the global default rather than blocking on a prompt.
 #
 # A SYMLINK by default, matching bin/install-cli.sh: the skill is versioned in
 # this repo, and edits are live with nothing to reinstall. Use --copy if you want
@@ -27,11 +32,20 @@ source "$(cd -P "$(dirname "$_s")" && pwd)/lib.sh"
 
 NAME="graphify-atlas"
 SRC="$ROOT/skills/$NAME"
-DIR="$HOME/.claude/skills"
-COPY=0 FORCE=0 REMOVE=0
+GLOBAL_DIR="$HOME/.claude/skills"
+DIR="" COPY=0 FORCE=0 REMOVE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --global) DIR="$GLOBAL_DIR"; shift ;;
+    --project)
+      # optional path argument; bare --project means $PWD
+      if [[ -n "${2:-}" && "$2" != -* ]]; then
+        DIR="$(cd "$2" 2>/dev/null && pwd)/.claude/skills" || die "no such directory: $2"
+        shift 2
+      else
+        DIR="$PWD/.claude/skills"; shift
+      fi ;;
     --dir)    DIR="${2:?--dir needs a path}"; shift 2 ;;
     --copy)   COPY=1; shift ;;
     --force)  FORCE=1; shift ;;
@@ -40,6 +54,36 @@ while [[ $# -gt 0 ]]; do
     *) die "unknown option: $1" ;;
   esac
 done
+
+# No location given: ask, but only when someone is there to answer. A piped or
+# scripted run takes the global default instead of hanging on a read.
+if [[ -z "$DIR" ]]; then
+  if [[ -t 0 && $REMOVE -eq 0 ]]; then
+    echo "Where should the '$NAME' skill go?"
+    echo "  1) global   $GLOBAL_DIR"
+    echo "             every project on this machine"
+    echo "  2) project  $PWD/.claude/skills"
+    echo "             only this checkout"
+    echo
+    printf 'Choice [1]: '
+    read -r choice || choice=1
+    case "${choice:-1}" in
+      1|"")     DIR="$GLOBAL_DIR" ;;
+      2)        DIR="$PWD/.claude/skills" ;;
+      *)        die "pick 1 or 2" ;;
+    esac
+    echo
+  else
+    DIR="$GLOBAL_DIR"
+  fi
+fi
+
+# A project-scoped install inside the atlas itself helps nobody: the skill is for
+# the repos being mapped, not for this one.
+if [[ "$DIR" == "$ROOT/.claude/skills" ]]; then
+  warn "that installs the skill into the atlas repo itself, where it is of no use"
+  warn "you probably want --global, or --project <the repo you are mapping>"
+fi
 
 DEST="$DIR/$NAME"
 

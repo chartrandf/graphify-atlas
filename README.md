@@ -58,11 +58,19 @@ else. It teaches agents to ask the graph before grepping, and to fall back to or
 saying so — when a repo is not tracked.
 
 ```bash
-bin/install-skill.sh              # symlink into ~/.claude/skills/
-bin/install-skill.sh --dir .claude/skills   # or scope it to one project
-bin/install-skill.sh --copy       # frozen snapshot instead of a symlink
-bin/install-skill.sh --remove
+bin/install-skill.sh                      # asks: global or this project?
+bin/install-skill.sh --global             # ~/.claude/skills
+bin/install-skill.sh --project [path]     # <path>/.claude/skills, that repo only
+bin/install-skill.sh --copy               # frozen snapshot instead of a symlink
+bin/install-skill.sh --remove             # pair with --global/--project
 ```
+
+Run bare, it asks where to put it. Piped or called from a script it takes the global default
+instead of blocking on a prompt, so it is safe in setup scripts.
+
+`--project` writes a symlink into that repo's `.claude/skills/` — the one case where this repo
+puts something inside a project, and only because you asked for it by name. `--global` touches
+nothing outside `~/.claude`.
 
 Symlinked by default, so editing `skills/graphify-atlas/SKILL.md` here takes effect in the next
 session. It will not overwrite an existing real directory without `--force`, and a replaced one
